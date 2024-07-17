@@ -1,270 +1,82 @@
-import json
 import os
 import re
+import json  # Import json module
+import fitz  # PyMuPDF
+import tabula
+import pandas as pd
+from openai import OpenAI
 
+def read_api_key(file_path):
+    with open(file_path, 'r') as file:
+        return file.read().strip()
 
-def main():
-    fields = """
-   [
-    {
-        "Asset Name": "Aix-En-Provence",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Vitrolles",
-        "GLA (Gross Leasable Area)": 3780,
-        "IP-Rent": 532849,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Athies",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Bekaert",
-        "GLA (Gross Leasable Area)": 6067,
-        "IP-Rent": 434692,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Béziers",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Buchaca",
-        "GLA (Gross Leasable Area)": 1900,
-        "IP-Rent": 350558,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Châtenois",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-22",
-        "Lease Duration in Years": 12.8,
-        "Seller": null,
-        "Tenant": "Perrenot Transvallées",
-        "GLA (Gross Leasable Area)": 13389,
-        "IP-Rent": 536735,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Cholet",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jan-23",
-        "Lease Duration in Years": 10.3,
-        "Seller": null,
-        "Tenant": "Perrenot Le Calvez Surgelés",
-        "GLA (Gross Leasable Area)": 3244,
-        "IP-Rent": 467348,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Cournon-D'Auvergne",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 5.8,
-        "Seller": null,
-        "Tenant": "Perrenot Auvergne",
-        "GLA (Gross Leasable Area)": 1573,
-        "IP-Rent": 210335,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Escrennes",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jan-22",
-        "Lease Duration in Years": 12.3,
-        "Seller": null,
-        "Tenant": "Perrenot Pithiviers",
-        "GLA (Gross Leasable Area)": 1083,
-        "IP-Rent": 269671,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Heudebouville",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Normandie",
-        "GLA (Gross Leasable Area)": 2400,
-        "IP-Rent": 303817,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Jonage",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Jonage",
-        "GLA (Gross Leasable Area)": 5021,
-        "IP-Rent": 654375,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Les Sorinières",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Nantes",
-        "GLA (Gross Leasable Area)": 2631,
-        "IP-Rent": 373929,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Marolles-sur-Seine",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 5.8,
-        "Seller": null,
-        "Tenant": "Perrenot Solutions",
-        "GLA (Gross Leasable Area)": 8748,
-        "IP-Rent": 584264,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Migné-Auxances",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Hersand",
-        "GLA (Gross Leasable Area)": 4852,
-        "IP-Rent": 501363,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Miramas",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Salon de Provence",
-        "GLA (Gross Leasable Area)": 1011,
-        "IP-Rent": 175279,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Montbartier",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jan-22",
-        "Lease Duration in Years": 12.3,
-        "Seller": null,
-        "Tenant": "Perrenot Le Calvez Surgelés",
-        "GLA (Gross Leasable Area)": 6950,
-        "IP-Rent": 1186552,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Noyal-sur-Vilaine",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Dec-20",
-        "Lease Duration in Years": 8.2,
-        "Seller": null,
-        "Tenant": "Perrenot Le Calvez Surgelés",
-        "GLA (Gross Leasable Area)": 10729,
-        "IP-Rent": 988398,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Saint-Denis-lès-Bourgs",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Nov-22",
-        "Lease Duration in Years": 13.1,
-        "Seller": null,
-        "Tenant": "La Fleche Bressane",
-        "GLA (Gross Leasable Area)": 2750,
-        "IP-Rent": 511269,
-        "Start of Contract": null
-    },
-    {
-        "Asset Name": "Valence",
-        "Filename": "filename_of_pdf.pdf",
-        "Delivery Date": null,
-        "City": null,
-        "Country": null,
-        "Start of Lease": "Jul-20",
-        "Lease Duration in Years": 7.8,
-        "Seller": null,
-        "Tenant": "Perrenot Vrac",
-        "GLA (Gross Leasable Area)": 1121,
-        "IP-Rent": 280447,
-        "Start of Contract": null
-    }
-]
-    """
+def extract_text_from_pdf(pdf_path):
+    document = fitz.open(pdf_path)
+    text = ""
+    for page_num in range(len(document)):
+        page = document.load_page(page_num)
+        text += page.get_text() + "\n\n"
+    return text
 
-    match = json.loads(fields)
-    return match
+def extract_tables_from_pdf(pdf_path):
+    tables = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True)
+    tables_dict = {}
+    for i, table in enumerate(tables):
+        page_num = i + 1
+        if page_num not in tables_dict:
+            tables_dict[page_num] = []
+        tables_dict[page_num].append(table)
 
-def get_filename():
-    file_path = ""
-    for filename in os.listdir(input_dir):
-        if filename.endswith(".pdf"):
-            file_path = os.path.join(input_dir, filename)
-    return file_path
-             
-   
+    return tables_dict
+
+def integrate_text_and_tables(pdf_path):
+    text = extract_text_from_pdf(pdf_path)
+    tables_dict = extract_tables_from_pdf(pdf_path)
+    document = fitz.open(pdf_path)
+    output_text = ""
+    for page_num in range(len(document)):
+        page_text = document.load_page(page_num).get_text()
+        output_text += f"Page {page_num + 1}\n"
+        output_text += page_text + "\n"
+        if page_num + 1 in tables_dict:
+            for i, table in enumerate(tables_dict[page_num + 1]):
+                output_text += f"Table {i + 1} on Page {page_num + 1}\n"
+                output_text += table.to_string(index=False) + "\n\n"
+    return output_text
+
+def extract_fields_from_text(text):
+    api_key = read_api_key('api_key.txt')
+    client = OpenAI(api_key=api_key)
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "system", "content": "You are a data analyst that extracts from pdf files"},
+                  {"role": "user", "content": f"Extract fields from the given text then output python dictionary or list of dictionaries if there are more than one asset:Asset Name, Filename, Delivery Date, City, Country, Start of Lease, Tenant, GLA, IP-Rent, Start of Contract, with Text:{text}"},
+                  {"role": "assistant", "content": """
+    Result should just be just valid json string
+    The fields are:
+    - Asset Name // This is the primary key, a pdf file can have many assets in it
+    - Filename // this is the filename of the pdf file from where the asset is extracted
+    - Delivery Date // delivery date of the asset
+    - City // city of the asset
+    - Country // country of the asset
+    - Start of Lease // asset's start of lease
+    - Lease Duration in Years // asset's lease duration in years
+    - Seller // asset's seller
+    - Tenant // asset's tenant
+    - GLA (Gross Leasable Area) // asset's GLA
+    - IP-Rent // asset's IP-Rent
+    - Start of Contract // asset's start of contract
+    """}],     
+    )
+    result = response.choices[0].message.content
+    return result
+
+def main(pdf_path, retry_count=3):
+    output_text = integrate_text_and_tables(pdf_path)
+    return []
 
 if __name__ == "__main__":
-    input_dir = './input'
-
-    print(get_filename())
-    print(type(get_filename()))
-    result = main()
-
-
-    #print(result)
+    pdf_path = "./input/Project Reverso - OM.pdf"  # Replace with your PDF file path
+    result = extract_tables_from_pdf(pdf_path)
+    print(result)

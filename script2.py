@@ -71,24 +71,40 @@ def extract_fields_from_text(text):
     result = response.choices[0].message.content
     return result
 
-def main(pdf_path):
+def main(pdf_path, retry_count=3):
     output_text = integrate_text_and_tables(pdf_path)
-    match = re.search(r'\[(.*)\]', extract_fields_from_text(output_text), re.DOTALL)
+    extracted_fields = extract_fields_from_text(output_text)
+    match = re.search(r'\[(.*)\]', extracted_fields, re.DOTALL)
     match = match.group(0) if match else None
 
-    print("Output Text:", output_text)
-    print("Match:", match)
-
     if match and match.strip():
-        try:
-            assets = json.loads(match)  # Use json.loads instead of eval
-            filename = os.path.basename(pdf_path)  # Extract just the filename
-            for asset in assets:
-                asset["Filename"] = filename  # Add filename to each asset
-            return assets
-        except json.JSONDecodeError as e:
-            print("JSON Decode Error:", e)
-            return []
+        for attempt in range(retry_count):
+            try:
+                assets = json.loads(match)  # Use json.loads instead of eval
+                filename = os.path.basename(pdf_path)  # Extract just the filename
+                for asset in assets:
+                    asset["Filename"] = filename  # Add filename to each asset
+                num_list = len(assets)
+                print(f"You have extracted {num_list} from {filename}")
+                return assets
+            except json.JSONDecodeError as e:
+                print(f"JSON Decode Error on attempt {attempt + 1}: {e}")
+                if attempt < retry_count - 1:
+                    print("Retrying...")
+                    output_text = integrate_text_and_tables(pdf_path)
+                    extracted_fields = extract_fields_from_text(output_text)
+                    match = re.search(r'\[(.*)\]', extracted_fields, re.DOTALL)
+                    match = match.group(0) if match else None
+                    assets = json.loads(match)  # Use json.loads instead of eval
+                    filename = os.path.basename(pdf_path)  # Extract just the filename
+                    for asset in assets:
+                        asset["Filename"] = filename  # Add filename to each asset
+                        num_list = len(assets)
+                    print(f"You have extracted {num_list} from {filename}")
+                    return assets
+                else:
+                    print("Max retry attempts reached. Returning empty list.")
+                    return []
     return []
 
 if __name__ == "__main__":
