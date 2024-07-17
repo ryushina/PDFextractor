@@ -26,6 +26,7 @@ def extract_tables_from_pdf(pdf_path):
         if page_num not in tables_dict:
             tables_dict[page_num] = []
         tables_dict[page_num].append(table)
+    print(f"Table {i + 1} on Page {page_num}:\n", table)
     return tables_dict
 
 def integrate_text_and_tables(pdf_path):
