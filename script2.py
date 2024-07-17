@@ -1,4 +1,6 @@
+import os
 import re
+import json  # Import json module
 import fitz  # PyMuPDF
 import tabula
 import pandas as pd
@@ -47,41 +49,49 @@ def extract_fields_from_text(text):
 
     response = client.chat.completions.create(
         model="gpt-4o",
-        messages=[{"role":"system","content":"You are a data analyst that extracts from pdf files"},
-                  {"role":"user","content":f"Extract fields from the given text then output python dictionary or list of dictionaries if there are more than one asset:Asset Name, Filename, Delivery Date, City, Country,Start of Lease,Tenant, GLA,IP-Rent, Start of Contract, with Text:{text}"},
-                  {"role":"assistant","content":f"""
+        messages=[{"role": "system", "content": "You are a data analyst that extracts from pdf files"},
+                  {"role": "user", "content": f"Extract fields from the given text then output python dictionary or list of dictionaries if there are more than one asset:Asset Name, Filename, Delivery Date, City, Country, Start of Lease, Tenant, GLA, IP-Rent, Start of Contract, with Text:{text}"},
+                  {"role": "assistant", "content": """
     Result should just be just valid json string
     The fields are:
     - Asset Name // This is the primary key, a pdf file can have many assets in it
     - Filename // this is the filename of the pdf file from where the asset is extracted
-    - Delivery Date // delivery date of the  asset
+    - Delivery Date // delivery date of the asset
     - City // city of the asset
     - Country // country of the asset
-    - Start of Lease //asset's start of lease
-    - Lease Duration in Years //asset's lease duration in years
-    - Seller //asset's seller
-    - Tenant //asset's tenant
-    - GLA (Gross Leasable Area) //asset's GLA
-    - IP-Rent //asset's IP-Rent
-    - Start of Contract //asset's start of contract
+    - Start of Lease // asset's start of lease
+    - Lease Duration in Years // asset's lease duration in years
+    - Seller // asset's seller
+    - Tenant // asset's tenant
+    - GLA (Gross Leasable Area) // asset's GLA
+    - IP-Rent // asset's IP-Rent
+    - Start of Contract // asset's start of contract
     """}],     
     )
     result = response.choices[0].message.content
     return result
-
 
 def main(pdf_path):
     output_text = integrate_text_and_tables(pdf_path)
     match = re.search(r'\[(.*)\]', extract_fields_from_text(output_text), re.DOTALL)
     match = match.group(0) if match else None
 
-    for i, asset in enumerate(match):
-        if i < len(pdf_path):
-            asset["Filename"] = pdf_path[i]
-    return match
+    print("Output Text:", output_text)
+    print("Match:", match)
+
+    if match and match.strip():
+        try:
+            assets = json.loads(match)  # Use json.loads instead of eval
+            filename = os.path.basename(pdf_path)  # Extract just the filename
+            for asset in assets:
+                asset["Filename"] = filename  # Add filename to each asset
+            return assets
+        except json.JSONDecodeError as e:
+            print("JSON Decode Error:", e)
+            return []
+    return []
 
 if __name__ == "__main__":
-
     pdf_path = "./input/Project Reverso - OM.pdf"  # Replace with your PDF file path
     result = main(pdf_path)
-    print(result)
+    print(f"here is the result:{result}")

@@ -263,6 +263,7 @@ if __name__ == "__main__":
     input_dir = './input'
 
     print(get_filename())
+    print(type(get_filename()))
     result = main()
 
 
