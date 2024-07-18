@@ -5,6 +5,7 @@ import fitz  # PyMuPDF
 import tabula
 import pandas as pd
 from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 def read_api_key(file_path):
     with open(file_path, 'r') as file:
@@ -72,6 +73,7 @@ def extract_fields_from_text(text):
     result = response.choices[0].message.content
     return result
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def main(pdf_path, retry_count=3):
     output_text = integrate_text_and_tables(pdf_path)
     extracted_fields = extract_fields_from_text(output_text)
@@ -92,17 +94,6 @@ def main(pdf_path, retry_count=3):
                 print(f"JSON Decode Error on attempt {attempt + 1}: {e}")
                 if attempt < retry_count - 1:
                     print("Retrying...")
-                    output_text = integrate_text_and_tables(pdf_path)
-                    extracted_fields = extract_fields_from_text(output_text)
-                    match = re.search(r'\[(.*)\]', extracted_fields, re.DOTALL)
-                    match = match.group(0) if match else None
-                    assets = json.loads(match)  # Use json.loads instead of eval
-                    filename = os.path.basename(pdf_path)  # Extract just the filename
-                    for asset in assets:
-                        asset["Filename"] = filename  # Add filename to each asset
-                        num_list = len(assets)
-                    print(f"You have extracted {num_list} from {filename}")
-                    return assets
                 else:
                     print("Max retry attempts reached. Returning empty list.")
                     return []
