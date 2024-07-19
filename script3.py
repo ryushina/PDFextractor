@@ -89,27 +89,28 @@ def load_combined_text(text):
     else:
         print("No JSON data found.")
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def load_data(result, retry_count=3):
+
+def load_data(result, attempt=1, max_attempts=3):
     match = re.search(r'\[(.*)\]', result, re.DOTALL)
     match = match.group(0) if match else None
     if match and match.strip():
-        for attempt in range(retry_count):
-            try:
-                assets = json.loads(match)  # Use json.loads instead of eval
-                filename = os.path.basename(pdf_path)  # Extract just the filename
-                for asset in assets:
-                    asset["Filename"] = filename  # Add filename to each asset
-                num_list = len(assets)
-                print(f"You have extracted {num_list} from {filename}")
-                return assets
-            except json.JSONDecodeError as e:
-                print(f"JSON Decode Error on attempt {attempt + 1}: {e}")
-                if attempt < retry_count - 1:
-                    print("Retrying...")
-                else:
-                    print("Max retry attempts reached. Returning empty list.")
-                    return []
+        try:
+            assets = json.loads(match)
+            filename = os.path.basename(pdf_path)
+            for asset in assets:
+                asset["Filename"] = filename
+            num_list = len(assets)
+            print(f"You have extracted {num_list} from {filename}")
+            return assets
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error on attempt {attempt}: {e}")
+            if attempt < max_attempts:
+                print("Retrying...")
+                new_result = analyze_table_data(combined_text)
+                return load_data(new_result, attempt + 1, max_attempts)
+            else:
+                print("Max retry attempts reached. Returning empty list.")
+                return []
     return []
 
 if __name__ == "__main__":
