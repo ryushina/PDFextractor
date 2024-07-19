@@ -41,10 +41,10 @@ def analyze_table_data(table_data):
     or [] if no meaningful and significant data"""}],     
     )
     result = response.choices[0].message.content
-    match = re.search(r'\[(.*)\]', result, re.DOTALL)
-    match = match.group(0) if match else None
-    match = json.load(match)
-    return match
+   # match = re.search(r'\[(.*)\]', result, re.DOTALL)
+   # match = match.group(0) if match else None
+   # match = json.load(match)
+    return result
 
 # Define a function to check for relevant keywords
 def has_relevant_keyword(df, keywords):
@@ -56,6 +56,7 @@ def has_relevant_keyword(df, keywords):
             if keyword.lower() in col.lower():
                 return True 
     # Check data values
+
     for keyword in keywords:
         if df.apply(lambda row: row.astype(str).str.contains(keyword, case=False).any(), axis=1).any():
             return True
@@ -74,6 +75,18 @@ def get_meaningful_tables(pdf_path):
 
 if __name__ == "__main__":
     pdf_path = "./input/Project Reverso - OM.pdf" 
+    text_tables = []
     meaningful_tables = get_meaningful_tables(pdf_path)
-    print(f"Here is the result: {result}")
+    combined_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
+    result = analyze_table_data(combined_text)
+    print(result)
+    """
+    for tabl in meaningful_tables:
+        text_table = tabl.to_string(index=False)
+        #feed to OPEN AI
+        #converted = analyze_table_data(text_table)
+        text_tables.append(text_table)
+    breakpoint()
+    print(f"Here is the result: {text_tables}")
+    """
 
