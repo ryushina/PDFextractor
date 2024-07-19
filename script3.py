@@ -38,7 +38,8 @@ def analyze_table_data(table_data):
                    
     The output should just be a loaded list of dictionary:
     [{'Asset Name': 'Sample Asset Name','Filename':'Sample Filename'....},{'Asset Name': 'Sample Asset Name','Filename':'Sample Filename'....}]
-    or [] if no meaningful and significant data"""}],     
+    or [] if no meaningful and significant data,
+    Please complete all significant found data"""}],     
     )
     result = response.choices[0].message.content
    # match = re.search(r'\[(.*)\]', result, re.DOTALL)
