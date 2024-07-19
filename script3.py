@@ -21,60 +21,24 @@ def analyze_table_data(table_data):
         messages=[{"role": "system", "content": "You are a data analyst that extracts from pdf files"},
                   {"role": "user", "content": f"Extract fields from the given text then output python dictionary or list of dictionaries if there are more than one asset, take note to not omit any valid entry:Asset Name, Filename, Delivery Date, City, Country, Start of Lease, Tenant, GLA, IP-Rent, Start of Contract, with Text:{table_data}"},
                   {"role": "assistant", "content": """
-    Extract fields from the given text and output a Python dictionary or a list of dictionaries if there are more than one asset. Ensure no valid entry is omitted. 
-
-The fields are:
-- Asset Name (string, required)
-- Filename (string, required)
-- Delivery Date (string, optional)
-- City (string, optional)
-- Country (string, optional)
-- Start of Lease (string, optional)
-- Lease Duration in Years (integer, optional)
-- Seller (string, optional)
-- Tenant (string, optional)
-- GLA (Gross Leasable Area, string, optional)
-- IP-Rent (string, optional)
-- Start of Contract (string, optional)
-
-The result should be a valid JSON string. 
-
-Here is an example of the expected output format:
-```json
-[
-    {
-        "Asset Name": "Asset 1",
-        "Filename": "example.pdf",
-        "Delivery Date": "2023-01-01",
-        "City": "New York",
-        "Country": "USA",
-        "Start of Lease": "2023-01-01",
-        "Lease Duration in Years": 5,
-        "Seller": "Company A",
-        "Tenant": "Tenant A",
-        "GLA": "1000 sqft",
-        "IP-Rent": "5000 USD",
-        "Start of Contract": "2023-01-01"
-    },
-    {
-        "Asset Name": "Asset 2",
-        "Filename": "example.pdf",
-        "Delivery Date": "2023-01-01",
-        "City": "Los Angeles",
-        "Country": "USA",
-        "Start of Lease": "2023-01-01",
-        "Lease Duration in Years": 3,
-        "Seller": "Company B",
-        "Tenant": "Tenant B",
-        "GLA": "2000 sqft",
-        "IP-Rent": "10000 USD",
-        "Start of Contract": "2023-01-01"
-    }
-]
-    """}]temperature=0.2)     
+    Result should just be just valid json string
+    The fields are:
+    - Asset Name // This is the primary key, a pdf file can have many assets in it
+    - Filename // this is the filename of the pdf file from where the asset is extracted
+    - Delivery Date // delivery date of the asset
+    - City // city of the asset
+    - Country // country of the asset
+    - Start of Lease // asset's start of lease
+    - Lease Duration in Years // asset's lease duration in years
+    - Seller // asset's seller
+    - Tenant // asset's tenant
+    - GLA (Gross Leasable Area) // asset's GLA
+    - IP-Rent // asset's IP-Rent
+    - Start of Contract // asset's start of contract
+    """}],temperature=0.2)     
     
     result = response.choices[0].message.content
-    print(result)
+
     return result
 
 # Define a function to check for relevant keywords
@@ -105,7 +69,7 @@ def get_meaningful_tables(pdf_path):
     return filtered_dfs
 
 
-def load_data(result, attempt=1, max_attempts=4):
+def load_data(result, attempt=1, max_attempts=3):
     match = re.search(r'\[(.*)\]', result, re.DOTALL)
     match = match.group(0) if match else None
     if match and match.strip():
