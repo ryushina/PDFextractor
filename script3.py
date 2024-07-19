@@ -35,12 +35,10 @@ def analyze_table_data(table_data):
     - GLA (Gross Leasable Area) // asset's GLA
     - IP-Rent // asset's IP-Rent
     - Start of Contract // asset's start of contract
-    """}])     
+    """}, temperature=0.2])     
     
     result = response.choices[0].message.content
-   # match = re.search(r'\[(.*)\]', result, re.DOTALL)
-   # match = match.group(0) if match else None
-   # match = json.load(match)
+    print(result)
     return result
 
 # Define a function to check for relevant keywords
@@ -70,27 +68,8 @@ def get_meaningful_tables(pdf_path):
     filtered_dfs = [df for df in tables_list if has_relevant_keyword(df, keywords)]
     return filtered_dfs
 
-def load_combined_text(text):
-    json_pattern = re.compile(r'```json\s*(\[(?:\{.*?\},?\s*)+\])\s*```', re.DOTALL)
 
-# Search for the JSON data in the text
-    match = json_pattern.search(text)
-
-    if match:
-    # Extract the JSON data
-        json_data = match.group(1)
-    
-    # Optional: Validate and load JSON data to ensure it's correct
-        try:
-            data = json.loads(json_data)
-            return data
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-    else:
-        print("No JSON data found.")
-
-
-def load_data(result, attempt=1, max_attempts=3):
+def load_data(result, attempt=1, max_attempts=4):
     match = re.search(r'\[(.*)\]', result, re.DOTALL)
     match = match.group(0) if match else None
     if match and match.strip():
