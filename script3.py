@@ -71,7 +71,7 @@ Here is an example of the expected output format:
         "Start of Contract": "2023-01-01"
     }
 ]
-    """}, temperature=0.2])     
+    """}]temperature=0.2)     
     
     result = response.choices[0].message.content
     print(result)
