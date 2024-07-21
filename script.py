@@ -87,7 +87,7 @@ def load_tbl_data(result, pdf_path ,attempt=1, max_attempts=3):
                 meaningful_tables = get_meaningful_tables(pdf_path)
                 combined_tbl_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
                 new_result = analyze_data(combined_tbl_text)
-                return load_data(new_result, attempt + 1, max_attempts)
+                return load_tbl_data(new_result, attempt + 1, max_attempts)
             else:
                 print("Max retry attempts reached. Returning empty list.")
                 return []
@@ -111,7 +111,7 @@ def load_txt_data(result, pdf_path ,attempt=1, max_attempts=3):
                 print("Retrying...")
                 full_text = extract_text_from_pdf(pdf_path)
                 new_result = analyze_data(full_text)
-                return load_data(new_result, attempt + 1, max_attempts)
+                return load_txt_data(new_result, attempt + 1, max_attempts)
             else:
                 print("Max retry attempts reached. Returning empty list.")
                 return []
