@@ -85,7 +85,57 @@ def load_data(result, attempt=1, max_attempts=3):
             print(f"JSON Decode Error on attempt {attempt}: {e}")
             if attempt < max_attempts:
                 print("Retrying...")
+
+                new_result = analyze_data(full_text)
+                return load_data(new_result, attempt + 1, max_attempts)
+            else:
+                print("Max retry attempts reached. Returning empty list.")
+                return []
+    return []
+
+def load_tbl_data(result, pdf_path ,attempt=1, max_attempts=3):
+    match = re.search(r'\[(.*)\]', result, re.DOTALL)
+    match = match.group(0) if match else None
+    if match and match.strip():
+        try:
+            assets = json.loads(match)
+            filename = os.path.basename(pdf_path)
+            for asset in assets:
+                asset["Filename"] = filename
+            num_list = len(assets)
+            print(f"You have extracted {num_list} from {filename}")
+            return assets
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error on attempt {attempt}: {e}")
+            if attempt < max_attempts:
+                print("Retrying...")
+                meaningful_tables = get_meaningful_tables(pdf_path)
+                combined_tbl_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
                 new_result = analyze_data(combined_tbl_text)
+                return load_data(new_result, attempt + 1, max_attempts)
+            else:
+                print("Max retry attempts reached. Returning empty list.")
+                return []
+    return []
+
+def load_txt_data(result, pdf_path ,attempt=1, max_attempts=3):
+    match = re.search(r'\[(.*)\]', result, re.DOTALL)
+    match = match.group(0) if match else None
+    if match and match.strip():
+        try:
+            assets = json.loads(match)
+            filename = os.path.basename(pdf_path)
+            for asset in assets:
+                asset["Filename"] = filename
+            num_list = len(assets)
+            print(f"You have extracted {num_list} from {filename}")
+            return assets
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error on attempt {attempt}: {e}")
+            if attempt < max_attempts:
+                print("Retrying...")
+                full_text = extract_text_from_pdf(pdf_path)
+                new_result = analyze_data(full_text)
                 return load_data(new_result, attempt + 1, max_attempts)
             else:
                 print("Max retry attempts reached. Returning empty list.")
@@ -111,9 +161,9 @@ def extract_text_from_pdf(pdf_path, separator="\n" + "="*80 + "\n"):
 
 
 def main(pdf_path):
-    print("Extracting tables from pdf...")
+    print(f"Extracting tables from pdf: {pdf_path}...")
     meaningful_tables = get_meaningful_tables(pdf_path)
-    print("Extracting text from pdf....")
+    print(f"Extracting text from pdf: {pdf_path}..")
     full_text = extract_text_from_pdf(pdf_path)
     print("Successfully extracted text from pdf...")
     combined_tbl_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
@@ -124,20 +174,45 @@ def main(pdf_path):
     print("Feeding texts to OpenAI...")
     result_text = analyze_data(full_text)
     print("Converting tables to dictionary format..")
-    final_tbl_res = load_data(result_table)
+    final_tbl_res = load_tbl_data(result_table, pdf_path=pdf_path)
     print("Converting texts to dictionary format...")
-    final_txt_res = load_data(result_text)
-    
+    final_txt_res = load_txt_data(result_text,pdf_path=pdf_path)
     # Convert the results to DataFrames and print them
     df_tbl = pd.DataFrame(final_tbl_res)
+    print("Dataframe from tables")
+    print(df_tbl)
     df_txt = pd.DataFrame(final_txt_res)
-    combined_df = df_tbl.combine_first(df_txt)
-    return combined_df
-    
+    print("Dataframe from texts")
+    print(df_txt)
+    # Combine the dataframes
+    combined_df = pd.concat([df_tbl, df_txt], ignore_index=True)
+    # Calculate the number of non-null entries in each row
+    combined_df['completeness'] = combined_df.notnull().sum(axis=1)
+    # Sort by 'Asset Name' and 'completeness', then drop duplicates
+    merged_df = combined_df.sort_values(['Asset Name', 'completeness'], ascending=[True, False]).drop_duplicates('Asset Name').drop('completeness', axis=1)
+    print(merged_df)
+    return merged_df    
 
 if __name__ == "__main__":
-    pdf_path = "./input/Investment Memorandum Project Circle 1-5-2024.pdf"
-    main(pdf_path)
-    #pdf_path = "./input/Project Reverso - OM.pdf" 
+    input_dir = "./input"
+    output_dir = "./output"
+    output_file = "combined_output.xlsx"
+
+    all_dfs = []
+
+    for filename in os.listdir(input_dir):
+        if filename.endswith(".pdf"):
+            pdf_path = os.path.join(input_dir, filename)
+            df = main(pdf_path)
+            all_dfs.append(df)
+
+    if all_dfs:
+        final_df = pd.concat(all_dfs, ignore_index=True)
+        output_path = os.path.join(output_dir, output_file)
+        final_df.to_excel(output_path, index=False)
+        print(f"Combined DataFrame saved to {output_path}")
+    else:
+        print("No PDF files found in the input directory.")
+
 
    
