@@ -101,13 +101,4 @@ if __name__ == "__main__":
     result = analyze_table_data(combined_text)
     final_res = load_data(result)
     print(final_res)
-    """
-    for tabl in meaningful_tables:
-        text_table = tabl.to_string(index=False)
-        #feed to OPEN AI
-        #converted = analyze_table_data(text_table)
-        text_tables.append(text_table)
-    breakpoint()
-    print(f"Here is the result: {text_tables}")
-    """
 
