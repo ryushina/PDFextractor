@@ -148,16 +148,16 @@ def main(pdf_path):
     result_table = analyze_data(combined_tbl_text)
     print("Feeding texts to OpenAI...")
     result_text = analyze_data(full_text)
-    print("Converting tables to dictionary format..")
+    print("Converting tables to dictionary format...")
     final_tbl_res = load_tbl_data(result_table, pdf_path=pdf_path)
     print("Converting texts to dictionary format...")
     final_txt_res = load_txt_data(result_text,pdf_path=pdf_path)
     # Convert the results to DataFrames and print them
     df_tbl = pd.DataFrame(final_tbl_res)
-    print("Dataframe from tables")
+    print("Dataframe from tables:")
     print(df_tbl)
     df_txt = pd.DataFrame(final_txt_res)
-    print("Dataframe from texts")
+    print("Dataframe from texts:")
     print(df_txt)
     # Combine the dataframes
     combined_df = pd.concat([df_tbl, df_txt], ignore_index=True)
@@ -165,7 +165,6 @@ def main(pdf_path):
     combined_df['completeness'] = combined_df.notnull().sum(axis=1)
     # Sort by 'Asset Name' and 'completeness', then drop duplicates
     merged_df = combined_df.sort_values(['Asset Name', 'completeness'], ascending=[True, False]).drop_duplicates('Asset Name').drop('completeness', axis=1)
-    print(merged_df)
     return merged_df    
 
 if __name__ == "__main__":
