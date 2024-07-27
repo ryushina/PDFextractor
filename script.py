@@ -1,6 +1,7 @@
 import os
 import re
-import json  # Import json module
+import json
+import sys  # Import json module
 import fitz  # PyMuPDF
 import tabula
 import pandas as pd
@@ -35,7 +36,7 @@ def analyze_data(table_data):
     - GLA (Gross Leasable Area) // asset's GLA
     - IP-Rent // asset's IP-Rent
     - Start of Contract // asset's start of contract
-    """}],temperature=0.2)     
+    """}],temperature=0.1)     
     
     result = response.choices[0].message.content
 
@@ -168,6 +169,15 @@ def main(pdf_path):
     return merged_df    
 
 if __name__ == "__main__":
+    # Determine the base directory where the executable is located
+    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+# Set the path to the Tabula JAR file
+    jar_path = os.path.join(base_dir, 'tabula', './.venv/Lib/site-packages/tabula/tabula-1.0.5-jar-with-dependencies.jar')
+
+# Set the CLASSPATH for the JAR file
+    os.environ['CLASSPATH'] = jar_path
+
     input_dir = "./input"
     output_dir = "./output"
     output_file = "combined_output.xlsx"
