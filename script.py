@@ -198,5 +198,6 @@ if __name__ == "__main__":
     else:
         print("No PDF files found in the input directory.")
 
+    input()
 
    
