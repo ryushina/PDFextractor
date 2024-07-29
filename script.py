@@ -1,7 +1,8 @@
 import os
 import re
 import json
-import sys  # Import json module
+import sys
+import traceback  # Import json module
 import fitz  # PyMuPDF
 import tabula
 import pandas as pd
@@ -137,67 +138,75 @@ def extract_text_from_pdf(pdf_path, separator="\n" + "="*80 + "\n"):
 
 
 def main(pdf_path):
-    print(f"Extracting tables from pdf: {pdf_path}...")
-    meaningful_tables = get_meaningful_tables(pdf_path)
-    print(f"Extracting text from pdf: {pdf_path}..")
-    full_text = extract_text_from_pdf(pdf_path)
-    print("Successfully extracted text from pdf...")
-    combined_tbl_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
-    #Feed to OPENAI
-    print("Successfully extracted tables from pdf...")
-    print("Feeding tables to OpenAI...")
-    result_table = analyze_data(combined_tbl_text)
-    print("Feeding texts to OpenAI...")
-    result_text = analyze_data(full_text)
-    print("Converting tables to dictionary format...")
-    final_tbl_res = load_tbl_data(result_table, pdf_path=pdf_path)
-    print("Converting texts to dictionary format...")
-    final_txt_res = load_txt_data(result_text,pdf_path=pdf_path)
-    # Convert the results to DataFrames and print them
-    df_tbl = pd.DataFrame(final_tbl_res)
-    print("Dataframe from tables:")
-    print(df_tbl)
-    df_txt = pd.DataFrame(final_txt_res)
-    print("Dataframe from texts:")
-    print(df_txt)
-    # Combine the dataframes
-    combined_df = pd.concat([df_tbl, df_txt], ignore_index=True)
-    # Calculate the number of non-null entries in each row
-    combined_df['completeness'] = combined_df.notnull().sum(axis=1)
-    # Sort by 'Asset Name' and 'completeness', then drop duplicates
-    merged_df = combined_df.sort_values(['Asset Name', 'completeness'], ascending=[True, False]).drop_duplicates('Asset Name').drop('completeness', axis=1)
-    return merged_df    
-
+    try:
+        print(f"Extracting tables from pdf: {pdf_path}...")
+        meaningful_tables = get_meaningful_tables(pdf_path)
+        print(f"Extracting text from pdf: {pdf_path}..")
+        full_text = extract_text_from_pdf(pdf_path)
+        print("Successfully extracted text from pdf...")
+        combined_tbl_text = "\n\n".join(table.to_string(index=False) for table in meaningful_tables)
+        #Feed to OPENAI
+        print("Successfully extracted tables from pdf...")
+        print("Feeding tables to OpenAI...")
+        result_table = analyze_data(combined_tbl_text)
+        print("Feeding texts to OpenAI...")
+        result_text = analyze_data(full_text)
+        print("Converting tables to dictionary format...")
+        final_tbl_res = load_tbl_data(result_table, pdf_path=pdf_path)
+        print("Converting texts to dictionary format...")
+        final_txt_res = load_txt_data(result_text,pdf_path=pdf_path)
+        # Convert the results to DataFrames and print them
+        df_tbl = pd.DataFrame(final_tbl_res)
+        print("Dataframe from tables:")
+        print(df_tbl)
+        df_txt = pd.DataFrame(final_txt_res)
+        print("Dataframe from texts:")
+        print(df_txt)
+        # Combine the dataframes
+        combined_df = pd.concat([df_tbl, df_txt], ignore_index=True)
+        # Calculate the number of non-null entries in each row
+        combined_df['completeness'] = combined_df.notnull().sum(axis=1)
+        # Sort by 'Asset Name' and 'completeness', then drop duplicates
+        merged_df = combined_df.sort_values(['Asset Name', 'completeness'], ascending=[True, False]).drop_duplicates('Asset Name').drop('completeness', axis=1)
+        return merged_df    
+    except Exception as e:
+        traceback.print_exception(e)
+        wait_for_it = input('Press enter to close the terminal window')
 if __name__ == "__main__":
+    try:
     # Determine the base directory where the executable is located
-    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
 # Set the path to the Tabula JAR file
-    jar_path = os.path.join(base_dir, 'tabula', './.venv/Lib/site-packages/tabula/tabula-1.0.5-jar-with-dependencies.jar')
+        jar_path = os.path.join(base_dir, 'tabula', './.venv/Lib/site-packages/tabula/tabula-1.0.5-jar-with-dependencies.jar')
 
 # Set the CLASSPATH for the JAR file
-    os.environ['CLASSPATH'] = jar_path
+        os.environ['CLASSPATH'] = jar_path
 
-    input_dir = "./input"
-    output_dir = "./output"
-    output_file = "combined_output.xlsx"
+        input_dir = "./input"
+        output_dir = "./output"
+        output_file = "combined_output.xlsx"
 
-    all_dfs = []
+        all_dfs = []
 
-    for filename in os.listdir(input_dir):
-        if filename.endswith(".pdf"):
-            pdf_path = os.path.join(input_dir, filename)
-            df = main(pdf_path)
-            all_dfs.append(df)
+        for filename in os.listdir(input_dir):
+            if filename.endswith(".pdf"):
+                pdf_path = os.path.join(input_dir, filename)
+                df = main(pdf_path)
+                all_dfs.append(df)
 
-    if all_dfs:
-        final_df = pd.concat(all_dfs, ignore_index=True)
-        output_path = os.path.join(output_dir, output_file)
-        final_df.to_excel(output_path, index=False)
-        print(f"Combined DataFrame saved to {output_path}")
-    else:
-        print("No PDF files found in the input directory.")
+        if all_dfs:
+            final_df = pd.concat(all_dfs, ignore_index=True)
+            output_path = os.path.join(output_dir, output_file)
+            final_df.to_excel(output_path, index=False)
+            print(f"Combined DataFrame saved to {output_path}")
+        else:
+            print("No PDF files found in the input directory.")
 
-    input()
+        input()
+    
+    except Exception as e:
+        traceback.print_exception(e)
+        wait_for_it = input('Press enter to close the terminal window')
 
    

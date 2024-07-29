@@ -76,7 +76,7 @@
  [],
  False,
  False,
- 1722270484,
+ 1722275166,
  [('run.exe',
    'c:\\Users\\Rustan\\Desktop\\ExtractScriptV2\\.venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\run.exe',
    'EXECUTABLE')],
